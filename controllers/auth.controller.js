@@ -158,7 +158,7 @@ class AuthController {
     return AuthController.generateToken(
       payload,
       process.env.JWT_ACCESS_SECRET || "access-secret-example",
-      "15m"
+      "20s"
     );
   }
 
