@@ -13,5 +13,4 @@ app.use(express.json());
 // application routes
 app.use("/api", router);
 
-// error handler should be the last middleware
 app.use(errorMiddleware);
