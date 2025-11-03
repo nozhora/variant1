@@ -51,7 +51,7 @@ describe("Integration Tests", () => {
       };
 
       const response = await request(app)
-        .post("/api/aut/register")
+        .post("/api/auth/register")
         .send(newUserData)
         .expect(200);
 
