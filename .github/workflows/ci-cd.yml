@@ -51,6 +51,10 @@ jobs:
             -v $(pwd)/staging_auth.db:/app/staging_auth.db \
             -p 3000:3000 \
             auth-api:latest
+      - name: Build on test
+        if: success()
+        run: |
+          curl -X POST ${{ secrets.RENDER_HOOK_DEV }}
 
   integration-test:
     name: 🧪 Integration Test
@@ -100,3 +104,7 @@ jobs:
             -v $(pwd)/prod_auth.db:/app/prod_auth.db \
             -p 3000:3000 \
             auth-api-prod:latest
+      - name: Build on prod
+        if: success()
+        run: |
+          curl -X POST ${{ secrets.RENDER_HOOK }}

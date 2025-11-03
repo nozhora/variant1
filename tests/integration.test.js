@@ -1,4 +1,12 @@
-import { describe, test, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
+import {
+  describe,
+  test,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  afterAll,
+} from "vitest";
 import request from "supertest";
 import bcrypt from "bcrypt";
 import { app } from "../app.js";
