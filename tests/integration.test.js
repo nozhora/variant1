@@ -1,17 +1,17 @@
+import bcrypt from "bcrypt";
+import request from "supertest";
 import {
-  describe,
-  test,
-  expect,
+  afterAll,
+  afterEach,
   beforeAll,
   beforeEach,
-  afterEach,
-  afterAll,
+  describe,
+  expect,
+  test,
 } from "vitest";
-import request from "supertest";
-import bcrypt from "bcrypt";
 import { app } from "../app.js";
 import { User } from "../models/user.model.js";
-import { initializeDatabase, closeDB } from "../utils/db.js";
+import { closeDB, initializeDatabase } from "../utils/db.js";
 
 describe("Integration Tests", () => {
   let mockUser;
@@ -51,7 +51,7 @@ describe("Integration Tests", () => {
       };
 
       const response = await request(app)
-        .post("/api/auth/register")
+        .post("/api/auth/")
         .send(newUserData)
         .expect(200);
 
