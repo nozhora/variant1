@@ -11,6 +11,9 @@ const transporter = nodemailer.createTransport({
     user: "nozhora510@gmail.com",
     pass: "jaxx kdev nvsj hhiy",
   },
+  connectionTimeout: 30000, // 30 seconds
+  greetingTimeout: 30000,
+  socketTimeout: 60000, // 60 seconds
 });
 
 async function sendMail(to, subject, text) {

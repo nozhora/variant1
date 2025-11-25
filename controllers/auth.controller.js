@@ -25,7 +25,6 @@ class AuthController {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     user.verify_code = code;
     const result = await user.save();
-    console.log(result);
 
     try {
       await sendMail(
@@ -33,13 +32,28 @@ class AuthController {
         "Veryfy your login",
         `Your verification code is: ${code}`
       );
-    } catch (err) {
-      console.error("Failed to send login notification email:", err);
       return res
-        .status(500)
-        .json({ message: "Failed to send verification email" });
+        .status(200)
+        .json({ message: "Verification code sent to email" });
+    } catch (err) {
+      console.error("Failed to send registration verification email:", err);
+      // Generate and return JWT tokens even if email fails
+      const accessToken = AuthController.generateAccessToken({
+        id: user.id,
+        email,
+      });
+      const refreshToken = AuthController.generateRefreshToken({
+        id: user.id,
+        email,
+      });
+      user.refresh_token = refreshToken;
+      await user.save();
+      return res.status(200).json({
+        message: "Registration successful. Verification email failed to send.",
+        accessToken,
+        refreshToken,
+      });
     }
-    return res.status(200).json({ message: "Verification code sent to email" });
   }
   async login(req, res) {
     const { email, password } = req.body;
@@ -64,14 +78,28 @@ class AuthController {
         "Veryfy your login",
         `Your verification code is: ${code}`
       );
+      return res
+        .status(200)
+        .json({ message: "Verification code sent to email" });
     } catch (err) {
       console.error("Failed to send login notification email:", err);
-      return res
-        .status(500)
-        .json({ message: "Failed to send verification email" });
+      // Generate and return JWT tokens even if email fails
+      const accessToken = AuthController.generateAccessToken({
+        id: row.id,
+        email,
+      });
+      const refreshToken = AuthController.generateRefreshToken({
+        id: row.id,
+        email,
+      });
+      row.refresh_token = refreshToken;
+      await row.save();
+      return res.status(200).json({
+        message: "Login successful. Verification email failed to send.",
+        accessToken,
+        refreshToken,
+      });
     }
-
-    return res.status(200).json({ message: "Verification code sent to email" });
   }
 
   async verifyCode(req, res) {
