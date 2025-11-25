@@ -1,11 +1,12 @@
-import request from "supertest";
 import { describe, expect, test } from "vitest";
-import { app } from "../app.js";
+import { generateAccessToken, verifyAccessToken } from "../utils/jwt.js";
 
-describe("Health Check", () => {
-  test("GET /api/health should return 200 and health status", async () => {
-    const response = await request(app).get("/api/health").expect(200);
+describe("JWT utils", () => {
+  test("generate and verify access token", () => {
+    const payload = { id: 1, email: "test@example.com" };
+    const token = generateAccessToken(payload, "1h");
+    const decoded = verifyAccessToken(token);
 
-    expect(response.body).toHaveProperty("status", "OK!");
+    expect(decoded).toMatchObject({ id: 1, email: "test@example.com" });
   });
 });

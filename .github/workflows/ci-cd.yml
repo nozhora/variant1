@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  NODE_VERSION: "18"
+
 jobs:
   unit-test:
     name: 🧪 Unit Test
@@ -17,8 +20,19 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+
+      - name: 💾 Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+            .next/cache
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: 📦 Install dependencies
         run: npm ci
@@ -30,6 +44,16 @@ jobs:
           JWT_REFRESH_SECRET: "replace-with-secure-random-string"
         run: npm run unit
 
+      - name: 💾 Cache test results
+        uses: actions/cache@v4
+        with:
+          path: |
+            coverage
+            .nyc_output
+          key: ${{ runner.os }}-test-results-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-test-results-
+
   staging:
     name: 🚀 Deploy to Staging
     runs-on: ubuntu-latest
@@ -39,19 +63,41 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🐳 Cleanup previous container
-        run: docker rm -f staging-app || true
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
 
-      - name: 🐳 Build and run app
+      - name: 💾 Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+            .next/cache
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build application
+        run: npm run build
+
+      - name: 🚀 Start staging server
+        env:
+          NODE_ENV: staging
+          DATABASE_URL: ./staging_auth.db
+          JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
         run: |
-          docker build -t auth-api:latest .
-          docker run -d \
-            --name staging-app \
-            -e DATABASE_URL=./staging_auth.db \
-            -v $(pwd)/staging_auth.db:/app/staging_auth.db \
-            -p 3000:3000 \
-            auth-api:latest
-      - name: Build on test
+          npm start &
+          echo "Staging server starting..."
+          sleep 10
+
+      - name: 🏗️ Trigger Staging Deployment
         if: success()
         run: |
           curl -X POST ${{ secrets.RENDER_HOOK_DEV }}
@@ -65,16 +111,32 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🐳 Build test container
-        run: docker build -t auth-api-test:latest .
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
 
-      - name: 🧪 Run integration tests in Docker
-        run: |
-          docker run --rm \
-            -e DATABASE_URL=./integration_test_auth.db \
-            -e JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }} \
-            -e JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }} \
-            auth-api-test:latest npm run integration
+      - name: 💾 Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🧪 Run integration tests
+        env:
+          NODE_ENV: test
+          DATABASE_URL: ./integration_test_auth.db
+          JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+        run: npm run integration
 
   production:
     name: 🚀 Deploy to Production
@@ -85,26 +147,38 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🐳 Cleanup previous container
-        run: docker rm -f prod-app || true
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
 
-      - name: 🐳 Build and run production app
+      - name: 💾 Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+            .next/cache
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build application
+        run: npm run build
+
+      - name: 🚀 Start production server
         env:
+          NODE_ENV: production
+          DATABASE_URL: ./prod_auth.db
           JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
           JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
         run: |
-          docker build -t auth-api-prod:latest .
-          docker run -d \
-            --name prod-app \
-            -e DATABASE_URL=./prod_auth.db \
-            -e JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }} \
-            -e JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }} \
-            -v $(pwd)/prod_auth.db:/app/prod_auth.db \
-            -p 3000:3000 \
-            auth-api-prod:latest
-      - name: Build on prod
-        if: success()
-        run: |
-          curl -X POST ${{ secrets.RENDER_HOOK }}
+          npm start &
+          echo "Production server starting..."
+          sleep 10
