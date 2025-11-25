@@ -83,9 +83,6 @@ jobs:
       - name: 📦 Install dependencies
         run: npm ci
 
-      - name: 🏗️ Build application
-        run: npm run build
-
       - name: 🚀 Start staging server
         env:
           NODE_ENV: staging
@@ -166,9 +163,6 @@ jobs:
 
       - name: 📦 Install dependencies
         run: npm ci
-
-      - name: 🏗️ Build application
-        run: npm run build
 
       - name: 🚀 Start production server
         env:
